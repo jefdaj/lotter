@@ -236,9 +236,9 @@ func lotMain() error {
 
 			var isLongTerm, isShortTerm bool
 			if inventory[i].Sign() > 0 { // double-entry, positive inventory indicates sell
-				// in U.S.A, distinguish long term gain/loss from short term
+				// in Croatia, distinguish long term gain/loss from short term
 				_, years, _, _, _, _, _, _ := Elapsed(lot[i].date, txLines.Date)
-				if years > 0 {
+				if years >= 2 || lot[i].date.Year() < 2016 {
 					isLongTerm = true
 				} else {
 					isShortTerm = true
