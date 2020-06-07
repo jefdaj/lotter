@@ -708,7 +708,7 @@ func consumeTrades(trades map[Asset]map[string][]Split, date time.Time) (lot []L
 					// new lot from trade
 
 					// lot account naming convention
-					l := NewLot("temp", date, *split.delta, lotBasis)
+					l := NewLot("temp", lotDate, *split.delta, lotBasis)
 					l.name = fmt.Sprintf("Lot:%s:%s:%s:%d", qual, lotDate.Format("2006-01-02"), lotName, l.weight)
 					buy(*l, qual)
 
