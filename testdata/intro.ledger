@@ -1,0 +1,30 @@
+; Decimal precision for various currencies.
+D 0.000000001 ABC
+D 0.000000001 XYZ
+D 0.00 USD
+
+P 2016/01/01 00:00:00 ABC 0.02 USD
+
+; Establish cost basis for a cryptocurrency.
+2016-01-01 Received ABC
+    Assets:Crypto                                100 ABC @ 0.02 USD
+    Income:Air Drop
+
+; Trade for dollars
+2017-01-01 Sell an ABC for one dollar
+    Assets:Exchange                                1 USD        
+    Assets:Crypto                                 -1 ABC @ 1 USD
+
+; P 2017/02/01 00:00:00 ABC 1.00 USD
+P 2017/02/01 00:00:00 XYZ 0.01 USD
+
+; Trade cryptocurrency for cryptocurrency
+2017-02-01 Trade an ABC for XYZ
+    Assets:Crypto                               1000 XYZ @ 0.01 ABC
+    Assets:Crypto                                -10 ABC
+
+; Trade cryptocurrency for cryptocurrency, realize gains immediately
+2018-02-02 Trade an ABC for XYZ
+    Assets:Crypto                               1000 XYZ @ 0.01 USD
+    Assets:Crypto                                -10 ABC @ 1 USD
+    

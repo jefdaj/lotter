@@ -1,0 +1,52 @@
+; deposit XRP to poloniex, account for fees.
+; use `ledger-lot -prune=3 -base=TEST` to run
+
+2017/01/01 initial equity
+    Assets:Crypto:RCL                            200 XRP @@ 1 TEST
+    Equity:test
+
+2017/01/01 initial equity
+    Assets:Crypto:BTC                            200 BTC @@ 1 TEST
+    Equity:test
+
+2017/01/02 example move fully specified
+    Assets:Crypto:Exchange                       1 XRP
+    Assets:Crypto:RCL                           -1 XRP
+    
+2017/01/03 example move buy side specified
+    Assets:Crypto:Exchange                       1 XRP
+    Assets:Crypto:RCL                           
+    
+2017/01/04 example move sell side specified
+    Assets:Crypto:Exchange                       
+    Assets:Crypto:RCL                           -1 XRP
+
+2017/01/05 example move sell side specified and fee
+    Assets:Crypto:Exchange                        -1 XRP
+    Assets:Crypto:Exchange                     -0.01 XRP
+    Expenses:Crypto:Exchange:fee                0.01 XRP
+    Assets:Crypto:RCL                           
+
+
+2017/01/05 move with fees
+    Assets:Crypto:BTC              -0.05553430136876 BTC ;@ 227.51358 USD ;
+    Assets:Crypto:BTC               0.055268702093977 BTC ;@ 227.51358 USD ;
+    Expenses:Crypto:BTC:fee
+
+
+2017/02/01 example deposit with fee
+    Assets:Crypto:RCL                           -100 XRP
+    Assets:Crypto:Poloniex                     79.70 XRP ; poloniex takes fee and reserve
+    Expenses:Crypto:Poloniex:fee  ; let ledger-cli calculate exactly what it cost
+
+; TODO(dnc): support multiple outputs, for example:
+2017/03/01 multiple out TODO
+    Assets:Crypto:BTC                          -3.001 BTC
+    Assets:Crypto:hardware                       2.0 BTC
+    Assets:Crypto:Exchange                       1.0 BTC
+    Expenses:Crypto:BTC:fee
+
+2017/04/01 trade with null amount
+    Assets:Crypto:RCL                            -20 XRP @ 1.05 TEST
+    Expenses:whatever
+    

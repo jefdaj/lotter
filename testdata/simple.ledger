@@ -1,0 +1,9 @@
+2016-01-01 Bought ABC
+    Assets:Crypto                                100 ABC @ 0.02 USD
+    Equity:Cash
+
+
+
+2017-01-01 Sell some ABC
+    Assets:Crypto                                 -1 ABC @ 1 USD
+    Assets:Exchange                               

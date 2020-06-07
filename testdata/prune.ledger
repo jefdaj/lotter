@@ -1,0 +1,72 @@
+; "pruning" allows ledger-lot to construct multiple FIFO queues for the same currency.
+
+; in this example, we acquire some ABC, and put it into a hardware
+; wallet for safe long-term storage.  Later, we make trades on an
+; exchange, temporarily holding ABC as a bridge to trade two other
+; currencies.  If ledger-lot maintains a single FIFO queue for ABC, we
+; realize gains as if we sold our long-held ABC.  If maintaining
+; multiple FIFO for ABC, we do not consume our long-held inventory and
+; do not realize those gains.
+
+; this example uses the following account names to distinguish
+; multiple on-chain wallets, a hardware wallet, and a balance at the
+; CoinFace exchange:
+
+;    Assets:Crypto:on-chain:hot
+;    Assets:Crypto:on-chain:cold
+;    Assets:Crypto:hardware
+;    Assets:Crypto:CoinFace
+
+; If -prune=3, ledger-lot creates distinct FIFOs for on-chain,
+; hardware and CoinFace (on-chain:hot and on-chain:cold use the same
+; FIFO).  If -prune=4 or higher, ledger-lot creates a FIFO for each
+; account (hot and cold are now distinct FIFOs). And if -prune=0, all
+; ABC uses a single FIFO (this is the default).
+
+; Decimal precision for various currencies.
+D 0.000000001 ABC
+D 0.000000001 XYZ
+D 0.00 USD
+
+; Establish cost basis for a cryptocurrency.
+2016-01-01 Received ABC
+    Assets:Crypto:on-chain:hot                   100 ABC @ 0.01 USD
+    Income:Air Drop                            
+
+; Move some assets to a cold wallet for safe keeping.
+; note how ledger-lot treats this transaction when -prune=4
+2016-01-02 Transfer ABC
+    Assets:Crypto:on-chain:hot                   -90 ABC             
+    Assets:Crypto:on-chain:cold              
+
+; TODO(dnc): this is not currently working...
+2016-01-02 Transfer ABC
+    Assets:Crypto:on-chain:hot                            
+    Assets:Crypto:on-chain:cold                   90 ABC
+
+; Much later, we decide to buy some XYZ.  The CoinFace exchange uses
+; ABC as a base, so in order to acquire XYZ, we temporarily hold some
+; ABC.  Note how ledger-lot calculates gains depending on -prune=3 vs
+; -prune=0.
+
+2018-02-01 Deposit funds for trading
+    Assets:Crypto:CoinFace                       100 USD
+    Equity
+
+2018-02-02 Trade USD/ABC when 1 ABC costs $100
+    Assets:Crypto:CoinFace                       100 ABC @ 100.00 USD
+    Assets:Crypto:CoinFace
+
+; This transaction consumes ABC inventory.  If we consume the ABC
+; purchased in 2016, we realize a gain.  If we consume the ABC
+; purchased in 2018, we will not. The -prune argument controls
+; ledger-lot's behavior.
+2018-02-03 Trade XYZ/ABC when 1 XYZ costs 1 ABC
+    Assets:Crypto:CoinFace                       100 XYZ @ 1.00 USD
+    Assets:Crypto:CoinFace                        -1 ABC @ 100 USD
+
+
+
+
+
+
