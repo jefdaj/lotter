@@ -487,7 +487,7 @@ func consumeMoves(moves map[Asset]map[string]*big.Rat) (lot []Lot, inventory []A
 					// different quality, and inventory equaling the portion
 					// sold.
 					shortName := lotShortName(i[j], NewAmount(b[j].Asset, *l[j].price))
-					name := fmt.Sprintf("Lot:%s:%s:%s", qual, l[j].date.Format("2006/01/02"), shortName)
+					name := fmt.Sprintf("Lot:%s:%s:%s:%d", qual, l[j].date.Format("2006-01-02"), shortName, l[j].weight)
 					newLot := NewLot(name, l[j].date, i[j], b[j].NegClone())
 					newLot.weight = l[j].weight // same date and weight as consumed inventory
 
@@ -708,8 +708,8 @@ func consumeTrades(trades map[Asset]map[string][]Split, date time.Time) (lot []L
 					// new lot from trade
 
 					// lot account naming convention
-					name := fmt.Sprintf("Lot:%s:%s:%s", qual, lotDate.Format("2006/01/02"), lotName)
-					l := NewLot(name, date, *split.delta, lotBasis)
+					l := NewLot("temp", date, *split.delta, lotBasis)
+					l.name = fmt.Sprintf("Lot:%s:%s:%s:%d", qual, lotDate.Format("2006-01-02"), lotName, l.weight)
 					buy(*l, qual)
 
 					lot = append(lot, *l)
