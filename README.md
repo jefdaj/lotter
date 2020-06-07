@@ -1,3 +1,12 @@
+## Notes
+
+Forked from [https://src.d10.dev/lotter](https://src.d10.dev/lotter)
+
+Original author also wrote a nice tutorial which can be found here:
+[https://www.d10.dev/blog/ledger-cli-trade](https://www.d10.dev/blog/ledger-cli-trade/)
+
+# Readme
+
 Lotter is a command-line tool that works with trade data in `ledger-cli`
 format. While `ledger-cli` is a fantastic calculator for double-entry
 accounting, its support for lots, cost basis, and gains is rather limited.
