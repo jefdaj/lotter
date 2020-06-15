@@ -280,10 +280,11 @@ func lotMain() error {
 
 		if shortInventory != nil && longInventory != nil {
 			sellInventory := new(big.Rat).Add(shortInventory.Rat, longInventory.Rat)
+			sellValue := new(big.Rat).Sub(new(big.Rat).Add(shortBasis, longBasis), totalGain)
 
-			// short term gain = (total gain) * (inventory consumed short term) / (total inventory consumed)
+			// short term gain = (total sale proceeds) * (inventory consumed short term) / (total inventory consumed) - (short term basis)
 			shortTermGain := new(big.Rat)
-			shortTermGain.Mul(totalGain, new(big.Rat).Quo(shortInventory.Rat, sellInventory))
+			shortTermGain.Sub(shortBasis, new(big.Rat).Mul(sellValue, new(big.Rat).Quo(shortInventory.Rat, sellInventory)))
 
 			// long term gain = (total gain) - (short term gain)
 			longTermGain := new(big.Rat).Sub(totalGain, shortTermGain)
