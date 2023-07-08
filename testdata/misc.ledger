@@ -1,52 +1,41 @@
-; deposit XRP to poloniex, account for fees.
-; use `ledger-lot -prune=3 -base=TEST` to run
+; https://src.d10.dev/lotter/tktview?name=149fa7a85e
 
-2017/01/01 initial equity
-    Assets:Crypto:RCL                            200 XRP @@ 1 TEST
-    Equity:test
+commodity USD
+	format 1,000.00 USD
 
-2017/01/01 initial equity
-    Assets:Crypto:BTC                            200 BTC @@ 1 TEST
-    Equity:test
+; first lot, cost basis 1000 USD
+2018-01-01 Buy 1st lot
+	Assets:Stocks	10 AAA @100 USD
+	Assets:Cash
 
-2017/01/02 example move fully specified
-    Assets:Crypto:Exchange                       1 XRP
-    Assets:Crypto:RCL                           -1 XRP
-    
-2017/01/03 example move buy side specified
-    Assets:Crypto:Exchange                       1 XRP
-    Assets:Crypto:RCL                           
-    
-2017/01/04 example move sell side specified
-    Assets:Crypto:Exchange                       
-    Assets:Crypto:RCL                           -1 XRP
+; second lot, equal inventory but basis 5000 USD
+2020-01-01 Buy 2nd lot
+	Assets:Stocks	10 AAA @500 USD
+	Assets:Cash
 
-2017/01/05 example move sell side specified and fee
-    Assets:Crypto:Exchange                        -1 XRP
-    Assets:Crypto:Exchange                     -0.01 XRP
-    Expenses:Crypto:Exchange:fee                0.01 XRP
-    Assets:Crypto:RCL                           
+; sell for 20000 USD, overall gain 14000, mixed long term and short term
+; short term gain is 10000 - 1000 = 9000 USD
+; long term gain is 10000 - 5000 = 5000 USD
+2020-05-01 Sell All
+	Assets:Stocks	-20 AAA @1000 USD
+	Assets:Cash
 
 
-2017/01/05 move with fees
-    Assets:Crypto:BTC              -0.05553430136876 BTC ;@ 227.51358 USD ;
-    Assets:Crypto:BTC               0.055268702093977 BTC ;@ 227.51358 USD ;
-    Expenses:Crypto:BTC:fee
+; similar scenario
+2018-01-01 Buy and hold long term
+    Assets:Stocks                                 10 BBB @100 USD
+    Assets:Cash
 
+2020-01-01 Buy and hold short term
+    Assets:Stocks                                 10 BBB @500 USD
+    Assets:Cash
 
-2017/02/01 example deposit with fee
-    Assets:Crypto:RCL                           -100 XRP
-    Assets:Crypto:Poloniex                     79.70 XRP ; poloniex takes fee and reserve
-    Expenses:Crypto:Poloniex:fee  ; let ledger-cli calculate exactly what it cost
-
-; TODO(dnc): support multiple outputs, for example:
-2017/03/01 multiple out TODO
-    Assets:Crypto:BTC                          -3.001 BTC
-    Assets:Crypto:hardware                       2.0 BTC
-    Assets:Crypto:Exchange                       1.0 BTC
-    Expenses:Crypto:BTC:fee
-
-2017/04/01 trade with null amount
-    Assets:Crypto:RCL                            -20 XRP @ 1.05 TEST
-    Expenses:whatever
+; If price here is 100 USD, there should be short term losses, and long term gains zero out
+; If price here is 500 USD, there should be long term gains, and short term zeroes out
+; If price is say 200 USD, long term gain is 1000 USD, while short term loss is 3000 USD
+; If price less than 100, both long term and short term losses (long term losses lower)
+; If price 1 USD, long term gains are 10 - 1000 = 990 USD (loss), while short term is 10 - 5000 = 4990 USD (loss)
+2020-05-01 Sell All for loss
+    Assets:Stocks                                -20 BBB @ 1 USD
+    Assets:Cash
     

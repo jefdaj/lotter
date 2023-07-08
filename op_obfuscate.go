@@ -18,6 +18,7 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"strings"
 
@@ -25,20 +26,20 @@ import (
 )
 
 func init() {
-	command.RegisterOperation(command.Operation{
-		Handler:     obfuscateMain,
-		Name:        "obfuscate",
-		Syntax:      "obfuscate [-prune=<int>] [-salt=<string>]",
-		Description: "Convert account names, concealing potentially sensitive data.",
-	})
+	command.RegisterOperation(
+		obfuscateMain,
+		"obfuscate",
+		"obfuscate [-prune=<int>] [-salt=<string>]",
+		"Convert account names, concealing potentially sensitive data.",
+	)
 }
 
 func obfuscateMain() error {
 	// define flags
-	pruneFlag := command.OperationFlagSet.Int("prune", 1, "name depth where obfuscation begins")
-	saltFlag := command.OperationFlagSet.String("salt", "", "make obfuscation hashes unique and reproducable only when salt is known")
+	pruneFlag := flag.Int("prune", 1, "name depth where obfuscation begins")
+	saltFlag := flag.String("salt", "", "make obfuscation hashes unique and reproducable only when salt is known")
 
-	err := command.OperationFlagSet.Parse(command.Args()[1:])
+	err := command.Parse()
 	if err != nil {
 		return err
 	}

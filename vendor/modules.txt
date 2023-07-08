@@ -1,0 +1,4 @@
+# src.d10.dev/command v0.0.0-20201230093613-a8448f374bdf => ../command
+## explicit
+src.d10.dev/command
+# src.d10.dev/command => ../command

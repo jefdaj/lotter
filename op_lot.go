@@ -1,4 +1,4 @@
-// Copyright (C) 2019  David N. Cohen
+// Copyright (C) 2019-2020  David N. Cohen
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-// Operation: Lot
+// Operation lot
 //
-//    usage: lotter -f <filename> lot
+// Usage:
+//
+//     lotter [-base <currency>] -f <filename> lot
 //
 // The `lot` operation adds "splits" to transactions, representing lot
 // inventory, cost basis, and gains.
@@ -42,6 +44,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"math/big"
@@ -54,12 +57,12 @@ import (
 )
 
 func init() {
-	command.RegisterOperation(command.Operation{
-		Handler:     lotMain,
-		Name:        "lot",
-		Syntax:      "lot [-prune=<int>]",
-		Description: "Add inventory, basis, and gain splits to ledger-cli data.",
-	})
+	command.RegisterOperation(
+		lotMain,
+		"lot",
+		"lot [-prune=<int>]",
+		"Add inventory, basis, and gain splits to ledger-cli data.",
+	)
 }
 
 // simple output helper
@@ -82,12 +85,12 @@ var (
 func lotMain() error {
 
 	// define flags
-	pruneFlag = command.OperationFlagSet.Int("prune", 0, "name depth of account-specific lots") // TODO(dnc): document prune (maybe rename)
-	orderFlag = command.OperationFlagSet.String("order", "fifo", "order in which lot inventory is consumed, may be fifo or lifo")
+	pruneFlag = flag.Int("prune", 0, "name depth of account-specific lots") // TODO(dnc): document prune (maybe rename)
+	orderFlag = flag.String("order", "fifo", "order in which lot inventory is consumed, may be fifo or lifo")
 
-	err := command.ParseOperationFlagSet()
+	err := command.Parse()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to parse flags: %w", err)
 	}
 
 	// validate flags
@@ -216,7 +219,7 @@ func lotMain() error {
 		shortBasis := new(big.Rat)
 		var longInventory, shortInventory *Amount
 
-		totalGain := new(big.Rat) // positive indicates sell, negative indicates buy
+		totalValue := new(big.Rat) // positive indicates sell, negative indicates buy
 		if isTrade {
 			for _, qualified := range splits {
 				for _, split := range qualified {
@@ -226,19 +229,24 @@ func lotMain() error {
 							if !ok {
 								log.Panicf("bad amount %s", s.delta)
 							}
-							totalGain.Add(totalGain, printed)
+							totalValue.Add(totalValue, printed)
 						}
 					}
 				}
 			}
 		}
+
+		// totalGain starts equal to totalValue, but will be reduced by
+		// basis of inventory consumed.
+		totalGain := new(big.Rat).Set(totalValue)
+
 		for i, _ := range inventory {
 
 			var isLongTerm, isShortTerm bool
 			if inventory[i].Sign() > 0 { // double-entry, positive inventory indicates sell
-				// in Croatia, distinguish long term gain/loss from short term
+				// in U.S.A, distinguish long term gain/loss from short term
 				_, years, _, _, _, _, _, _ := Elapsed(lot[i].date, txLines.Date)
-				if years >= 2 || lot[i].date.Year() < 2016 {
+				if years > 0 {
 					isLongTerm = true
 				} else {
 					isShortTerm = true
@@ -263,6 +271,7 @@ func lotMain() error {
 
 			}
 
+			// use the rendered amount, so that our math uses same precision as output
 			printed, ok := new(big.Rat).SetString(basis[i].FloatString())
 			if !ok {
 				log.Panicf("bad amount (%q)", basis[i])
@@ -275,16 +284,19 @@ func lotMain() error {
 				shortBasis.Add(shortBasis, printed)
 				shortInventory.Add(shortInventory.Rat, inventory[i].Rat)
 			}
-			totalGain.Add(totalGain, printed)
+			totalGain.Add(totalGain, printed) // lower totalGain by basis cost
 		} // end inventory loop
 
+		// if any inventory consumed, both shortInventory and longInventory will be non-nil
 		if shortInventory != nil && longInventory != nil {
-			sellInventory := new(big.Rat).Add(shortInventory.Rat, longInventory.Rat)
-			sellValue := new(big.Rat).Sub(new(big.Rat).Add(shortBasis, longBasis), totalGain)
 
-			// short term gain = (total sale proceeds) * (inventory consumed short term) / (total inventory consumed) - (short term basis)
-			shortTermGain := new(big.Rat)
-			shortTermGain.Sub(shortBasis, new(big.Rat).Mul(sellValue, new(big.Rat).Quo(shortInventory.Rat, sellInventory)))
+			// assume mix of short-term and long term gains
+			// short term gain = (total value * (short term inventory / total inventory)) - short term basis
+			totalInventory := new(big.Rat).Add(shortInventory.Rat, longInventory.Rat)
+			shortTermRatio := new(big.Rat).Quo(shortInventory.Rat, totalInventory) // how much of inventory sold was short term?
+			shortTermValue := new(big.Rat).Mul(totalValue, shortTermRatio)
+
+			shortTermGain := new(big.Rat).Add(shortTermValue, shortBasis) // Add (not sub) because in double entry gains and basis have opposite signs (gains negative, basis positive)
 
 			// long term gain = (total gain) - (short term gain)
 			longTermGain := new(big.Rat).Sub(totalGain, shortTermGain)
@@ -488,7 +500,7 @@ func consumeMoves(moves map[Asset]map[string]*big.Rat) (lot []Lot, inventory []A
 					// different quality, and inventory equaling the portion
 					// sold.
 					shortName := lotShortName(i[j], NewAmount(b[j].Asset, *l[j].price))
-					name := fmt.Sprintf("Lot:%s:%s:%s:%d", qual, l[j].date.Format("2006-01-02"), shortName, l[j].weight)
+					name := fmt.Sprintf("Lot:%s:%s:%s", qual, l[j].date.Format("2006/01/02"), shortName)
 					newLot := NewLot(name, l[j].date, i[j], b[j].NegClone())
 					newLot.weight = l[j].weight // same date and weight as consumed inventory
 
@@ -709,8 +721,8 @@ func consumeTrades(trades map[Asset]map[string][]Split, date time.Time) (lot []L
 					// new lot from trade
 
 					// lot account naming convention
-					l := NewLot("temp", lotDate, *split.delta, lotBasis)
-					l.name = fmt.Sprintf("Lot:%s:%s:%s:%d", qual, lotDate.Format("2006-01-02"), lotName, l.weight)
+					name := fmt.Sprintf("Lot:%s:%s:%s", qual, lotDate.Format("2006/01/02"), lotName)
+					l := NewLot(name, lotDate, *split.delta, lotBasis)
 					buy(*l, qual)
 
 					lot = append(lot, *l)
@@ -737,3 +749,4 @@ func lotShortName(inventory Amount, price Amount) string {
 		strings.ReplaceAll(price.String(), " ", ""),
 	)
 }
+

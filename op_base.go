@@ -1,4 +1,4 @@
-// Copyright (C) 2019  David N. Cohen
+// Copyright (C) 2019-2020  David N. Cohen
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -13,10 +13,29 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// Operation base
+//
+// Usage:
+//
+//    lotter [-base <currency>] -f <filename> base
+//
+// The base operation modifies transaction splits, converting costs
+// and amounts into the _base_ currency.  This is intended to be a
+// pre-processor for the **lot** operation, allowing trades to be
+// accounted for in terms of the _base_ currency, even when the trades
+// are for other currencies.
+//
+// This operation observes prices in the ledger file.  When a split
+// has a cost expressed in a currency other than _base_, and a price
+// conversion to _base_ is available on the same day as the
+// transaction, this operation rewrites the transaction splits
+// converting the original cost currency into the _base_.
+//
 package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"math/big"
@@ -27,19 +46,19 @@ import (
 )
 
 func init() {
-	command.RegisterOperation(command.Operation{
-		Handler:     baseMain,
-		Name:        "base",
-		Syntax:      "base [-b=<begin date>]",
-		Description: "Convert price/cost information to base currency (using ledger-cli price data).",
-	})
+	command.RegisterOperation(
+		baseMain,
+		"base",
+		"base [-b=<begin date>]",
+		"Convert price/cost information to base currency (using ledger-cli price data).",
+	)
 }
 
 func baseMain() error {
 	// define flags
-	beginFlag := command.OperationFlagSet.String("b", "", "begin date")
+	beginFlag := flag.String("b", "", "begin date")
 
-	err := command.OperationFlagSet.Parse(command.Args()[1:])
+	err := command.Parse()
 	if err != nil {
 		return err
 	}
@@ -71,7 +90,18 @@ func baseMain() error {
 				seg := strings.SplitN(line, ";", 2)
 				field := strings.Fields(seg[0])
 
-				if field[5] != string(base) {
+				// support "P 2004/06/21 TWCUX 27.76 USD" by inserting a time
+				if len(field) == 5 {
+					field = append(field[:2+1], field[2:]...)
+					field[2] = "00:00:00"
+				}
+
+				counterIdx, invert := -1, false
+				if field[5] == string(base) {
+					counterIdx, invert = 3, false
+				} else if field[3] == string(base) {
+					counterIdx, invert = 5, true
+				} else {
 					command.V(1).Infof("ignoring non-base price (%q)", line)
 					continue
 				}
@@ -85,8 +115,11 @@ func baseMain() error {
 				if !ok {
 					command.Check(fmt.Errorf("failed to parse historical price (%q)", line))
 				}
+				if invert {
+					price.Inv(price)
+				}
 
-				key := historyKey(date, Asset(field[3]))
+				key := historyKey(date, Asset(field[counterIdx]))
 				old, ok := priceHistory[key]
 				if ok {
 					// TODO(dnc): round strings to proper precision
@@ -167,6 +200,7 @@ func baseMain() error {
 
 				if split.cost != nil || split.price != nil {
 					basis, ok := conversion[split.Cost().String()]
+					basis = basis.AbsClone()
 					if ok {
 						// replace existing cost/price with basis
 						txLines.Line[payeeIndex+1+index] = strings.Replace(line, "@", fmt.Sprintf("@@ %s ; @", basis), 1)
@@ -211,3 +245,4 @@ func baseMain() error {
 func historyKey(date time.Time, asset Asset) string {
 	return fmt.Sprintf("%s %s", date.Format("2006/01/02"), asset)
 }
+

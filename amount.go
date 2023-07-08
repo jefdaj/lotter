@@ -89,6 +89,12 @@ func (this Amount) NegClone() Amount {
 	return clone
 }
 
+func (this Amount) AbsClone() Amount {
+	clone := this.ZeroClone()
+	clone.Set(this.Rat).Abs(this.Rat)
+	return clone
+}
+
 func (this Amount) Clone() Amount {
 	clone := this.ZeroClone()
 	clone.Set(this.Rat)
