@@ -1,6 +1,6 @@
-with import <nixpkgs> {};
+{ buildGoModule }:
 
-pkgs.buildGoModule {
+buildGoModule {
   pname = "lotter";
   version = "395b62bc7d";
   src = ./.;
